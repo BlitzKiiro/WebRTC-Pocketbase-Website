@@ -79,7 +79,7 @@ async function createOffer() {
 
   // creating RTC peer connection offer and setting it as our local RTC session description
   const offer = await peerConnection.createOffer();
-  await peerConnection.setLocalDescription(offer);
+  peerConnection.setLocalDescription(offer);
   callDOC = await pb.collection("calls").update(callID, { offer });
   console.log(offer);
 
@@ -134,7 +134,7 @@ async function answerOffer() {
   await peerConnection.setRemoteDescription(remoteOfferDescription);
   // creating our answer SDP and adding it to the server and peer connection
   const answerDescription = await peerConnection.createAnswer();
-  await peerConnection.setLocalDescription(answerDescription);
+  peerConnection.setLocalDescription(answerDescription);
   await pb.collection("calls").update(callID, { answer: answerDescription });
   // listen to created offer ice candidates and add it to Peerconnection obj
   pb.collection("offer_candidates").subscribe("*", async function (e) {
