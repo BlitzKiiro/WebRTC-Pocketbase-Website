@@ -13,7 +13,7 @@ let joinInput = document.querySelector("#join-input");
 const pb = new PocketBase("https://appetizing-potato.pockethost.io");
 
 //stun servers
-const servers = {
+const config = {
   iceServers: [
     {
       urls: ["stun:stun1.l.google.com:19302", "stun:stun2.l.google.com:19302"],
@@ -24,7 +24,7 @@ const servers = {
 // conntection and streams vars
 let localStream = null; //local media stream
 let remoteStream = null; //incoming media stream
-let peerConnection = new RTCPeerConnection(servers); //RTC peer connection object
+let peerConnection = new RTCPeerConnection(config); //RTC peer connection object
 
 //init function
 async function init() {
@@ -81,7 +81,6 @@ async function createOffer() {
   const offer = await peerConnection.createOffer();
   peerConnection.setLocalDescription(offer);
   callDOC = await pb.collection("calls").update(callID, { offer });
-  console.log(offer);
 
   //listen to remote answers
   pb.collection("calls").subscribe(callID, async function (e) {
@@ -134,8 +133,9 @@ async function answerOffer() {
   await peerConnection.setRemoteDescription(remoteOfferDescription);
   // creating our answer SDP and adding it to the server and peer connection
   const answerDescription = await peerConnection.createAnswer();
-  peerConnection.setLocalDescription(answerDescription);
   await pb.collection("calls").update(callID, { answer: answerDescription });
+  await peerConnection.setLocalDescription(answerDescription);
+
   // listen to created offer ice candidates and add it to Peerconnection obj
   pb.collection("offer_candidates").subscribe("*", async function (e) {
     if (e.action === "create" && e.record.callID == callID) {
@@ -144,8 +144,6 @@ async function answerOffer() {
       await peerConnection.addIceCandidate(iceCandidate);
     }
   });
-
-  console.log("end of answer");
 }
 
 //init reading from media sources
