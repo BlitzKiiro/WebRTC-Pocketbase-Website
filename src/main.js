@@ -88,15 +88,18 @@ async function createOffer() {
     if (!peerConnection.currentRemoteDescription && data?.answer) {
       const remoteDescription = new RTCSessionDescription(data.answer);
       await peerConnection.setRemoteDescription(remoteDescription);
-    }
-  });
-
-  // listen to created answer ice candidates and add it to Peerconnection obj
-  pb.collection("answer_candidates").subscribe("*", async function (e) {
-    if (e.action === "create" && e.record.callID == callID) {
-      const data = e.record.rTCIceCandidate;
-      const iceCandidate = new RTCIceCandidate(data);
-      await peerConnection.addIceCandidate(iceCandidate);
+    } else {
+      let candidates = data.answer_candidates;
+      if (
+        JSON.stringify(candidates) != JSON.stringify(callDOC.answer_candidates)
+      ) {
+        const canDoc = await pb
+          .collection("answer_candidates")
+          .getOne(candidates.pop());
+        const data = canDoc.rTCIceCandidate;
+        const iceCandidate = new RTCIceCandidate(data);
+        await peerConnection.addIceCandidate(iceCandidate);
+      }
     }
   });
 }
@@ -133,8 +136,8 @@ async function answerOffer() {
   await peerConnection.setRemoteDescription(remoteOfferDescription);
   // creating our answer SDP and adding it to the server and peer connection
   const answerDescription = await peerConnection.createAnswer();
+  peerConnection.setLocalDescription(answerDescription);
   await pb.collection("calls").update(callID, { answer: answerDescription });
-  await peerConnection.setLocalDescription(answerDescription);
 
   // listen to created offer ice candidates and add it to Peerconnection obj
   pb.collection("offer_candidates").subscribe("*", async function (e) {
