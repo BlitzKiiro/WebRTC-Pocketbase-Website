@@ -95,7 +95,7 @@ async function createOffer() {
       ) {
         const canDoc = await pb
           .collection("answer_candidates")
-          .getOne(candidates.pop());
+          .getOne(candidates.pop(), { $autoCancel: false });
         const data = canDoc.rTCIceCandidate;
         const iceCandidate = new RTCIceCandidate(data);
         await peerConnection.addIceCandidate(iceCandidate);
