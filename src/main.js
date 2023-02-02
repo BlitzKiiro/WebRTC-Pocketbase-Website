@@ -60,38 +60,43 @@ async function createOffer() {
   //listen to ice candidates created PC and stun servers
   peerConnection.onicecandidate = (event) => {
     if (event.candidate) {
-      pb.collection("offer_candidates").create(
-        {
-          callID,
-          rTCIceCandidate: event.candidate,
-        },
-        { $autoCancel: false }
-      );
+      pb.collection("offer_candidates")
+        .create(
+          {
+            callID,
+            rTCIceCandidate: event.candidate,
+          },
+          { $autoCancel: false }
+        )
+        .then(({ id }) => {
+          console.log("offer canidate created", { id });
+        });
     }
   };
 
   // creating RTC peer connection offer and setting it as our local RTC session description
   const offer = await peerConnection.createOffer();
-  peerConnection.setLocalDescription(offer);
+  await peerConnection.setLocalDescription(offer);
   callDOC = await pb.collection("calls").update(callID, { offer });
-
+  console.log("created and uploaded offer sdp", offer);
   //listen to remote answers
   pb.collection("calls").subscribe(callID, async function (e) {
     const data = e.record;
     if (!peerConnection.currentRemoteDescription && data?.answer) {
       const remoteDescription = new RTCSessionDescription(data.answer);
       await peerConnection.setRemoteDescription(remoteDescription);
-
+      console.log("remote description was set", remoteDescription);
       // get answer canidates from DB and assigning them to PeerConnection
       const answerCandidates = await pb
         .collection("answer_candidates")
         .getFullList(100, {
-          callID: callID,
+          filter: `callID = "${callID}"`,
         });
       answerCandidates.forEach((candidate) => {
         const data = candidate.rTCIceCandidate;
         const iceCandidate = new RTCIceCandidate(data);
         peerConnection.addIceCandidate(iceCandidate);
+        console.log("answer canidate added", iceCandidate);
       });
     }
   });
@@ -101,40 +106,45 @@ async function createOffer() {
 async function answerOffer() {
   //getting offer call document
   const callID = joinInput.value;
-  let callDoc = await pb.collection("calls").getOne(callID, {
-    expand: "offer_candidates,answer_candidates",
-  });
+  let callDoc = await pb.collection("calls").getOne(callID);
 
   //adding our answering end ice candidates to the server
   peerConnection.onicecandidate = (event) => {
     if (event.candidate) {
-      pb.collection("answer_candidates").create(
-        {
-          callID,
-          rTCIceCandidate: event.candidate,
-        },
-        { $autoCancel: false }
-      );
+      pb.collection("answer_candidates")
+        .create(
+          {
+            callID,
+            rTCIceCandidate: event.candidate,
+          },
+          { $autoCancel: false }
+        )
+        .then(({ id }) => {
+          console.log("answer canidate created", { id });
+        });
     }
   };
   //getting offer doc SDP (session description) and adding it to the peer connection
   const remoteOfferDescription = new RTCSessionDescription(callDoc.offer);
   await peerConnection.setRemoteDescription(remoteOfferDescription);
+  console.log("remoted description was set", remoteOfferDescription);
   // creating our answer SDP and adding it to the server and peer connection
   const answerDescription = await peerConnection.createAnswer();
   await peerConnection.setLocalDescription(answerDescription);
   await pb.collection("calls").update(callID, { answer: answerDescription });
+  console.log("answer sdp created");
 
   // get offer canidates from DB and assigning them to PeerConnection
   const offerCandidates = await pb
     .collection("offer_candidates")
     .getFullList(100, {
-      callID: callID,
+      filter: `callID = "${callID}"`,
     });
   offerCandidates.forEach((candidate) => {
     const data = candidate.rTCIceCandidate;
     const iceCandidate = new RTCIceCandidate(data);
     peerConnection.addIceCandidate(iceCandidate);
+    console.log("offer canidate added", iceCandidate);
   });
 }
 
