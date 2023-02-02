@@ -81,15 +81,18 @@ async function createOffer() {
     if (!peerConnection.currentRemoteDescription && data?.answer) {
       const remoteDescription = new RTCSessionDescription(data.answer);
       await peerConnection.setRemoteDescription(remoteDescription);
-    }
-  });
 
-  // listen to created answer ice candidates and add it to Peerconnection obj
-  pb.collection("answer_candidates").subscribe("*", async function (e) {
-    if (e.action === "create" && e.record.callID == callID) {
-      const data = e.record.rTCIceCandidate;
-      const iceCandidate = new RTCIceCandidate(data);
-      await peerConnection.addIceCandidate(iceCandidate);
+      // get answer canidates from DB and assigning them to PeerConnection
+      const answerCandidates = await pb
+        .collection("answer_candidates")
+        .getFullList(100, {
+          callID: callID,
+        });
+      answerCandidates.forEach((candidate) => {
+        const data = candidate.rTCIceCandidate;
+        const iceCandidate = new RTCIceCandidate(data);
+        peerConnection.addIceCandidate(iceCandidate);
+      });
     }
   });
 }
@@ -119,16 +122,19 @@ async function answerOffer() {
   await peerConnection.setRemoteDescription(remoteOfferDescription);
   // creating our answer SDP and adding it to the server and peer connection
   const answerDescription = await peerConnection.createAnswer();
-  await pb.collection("calls").update(callID, { answer: answerDescription });
   await peerConnection.setLocalDescription(answerDescription);
+  await pb.collection("calls").update(callID, { answer: answerDescription });
 
-  // listen to created offer ice candidates and add it to Peerconnection obj
-  pb.collection("offer_candidates").subscribe("*", async function (e) {
-    if (e.action === "create" && e.record.callID == callID) {
-      const data = e.record.rTCIceCandidate;
-      const iceCandidate = new RTCIceCandidate(data);
-      await peerConnection.addIceCandidate(iceCandidate);
-    }
+  // get offer canidates from DB and assigning them to PeerConnection
+  const offerCandidates = await pb
+    .collection("offer_candidates")
+    .getFullList(100, {
+      callID: callID,
+    });
+  offerCandidates.forEach((candidate) => {
+    const data = candidate.rTCIceCandidate;
+    const iceCandidate = new RTCIceCandidate(data);
+    peerConnection.addIceCandidate(iceCandidate);
   });
 }
 
