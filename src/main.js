@@ -58,19 +58,12 @@ async function createOffer() {
   createInput.value = callID;
 
   //listen to ice candidates created PC and stun servers
-  peerConnection.onicecandidate = async (event) => {
+  peerConnection.onicecandidate = (event) => {
     if (event.candidate) {
-      const { id } = await pb.collection("offer_candidates").create(
+      pb.collection("offer_candidates").create(
         {
           callID,
           rTCIceCandidate: event.candidate,
-        },
-        { $autoCancel: false }
-      );
-      callDOC = await pb.collection("calls").update(
-        callID,
-        {
-          offer_candidates: [...callDOC?.offer_candidates, id],
         },
         { $autoCancel: false }
       );
@@ -88,18 +81,15 @@ async function createOffer() {
     if (!peerConnection.currentRemoteDescription && data?.answer) {
       const remoteDescription = new RTCSessionDescription(data.answer);
       await peerConnection.setRemoteDescription(remoteDescription);
-    } else {
-      let candidates = data.answer_candidates;
-      if (
-        JSON.stringify(candidates) != JSON.stringify(callDOC.answer_candidates)
-      ) {
-        const canDoc = await pb
-          .collection("answer_candidates")
-          .getOne(candidates.pop(), { $autoCancel: false });
-        const data = canDoc.rTCIceCandidate;
-        const iceCandidate = new RTCIceCandidate(data);
-        await peerConnection.addIceCandidate(iceCandidate);
-      }
+    }
+  });
+
+  // listen to created answer ice candidates and add it to Peerconnection obj
+  pb.collection("answer_candidates").subscribe("*", async function (e) {
+    if (e.action === "create" && e.record.callID == callID) {
+      const data = e.record.rTCIceCandidate;
+      const iceCandidate = new RTCIceCandidate(data);
+      await peerConnection.addIceCandidate(iceCandidate);
     }
   });
 }
@@ -113,19 +103,12 @@ async function answerOffer() {
   });
 
   //adding our answering end ice candidates to the server
-  peerConnection.onicecandidate = async (event) => {
+  peerConnection.onicecandidate = (event) => {
     if (event.candidate) {
-      const { id } = await pb.collection("answer_candidates").create(
+      pb.collection("answer_candidates").create(
         {
           callID,
           rTCIceCandidate: event.candidate,
-        },
-        { $autoCancel: false }
-      );
-      callDoc = await pb.collection("calls").update(
-        callID,
-        {
-          answer_candidates: [...callDoc?.answer_candidates, id],
         },
         { $autoCancel: false }
       );
@@ -136,8 +119,8 @@ async function answerOffer() {
   await peerConnection.setRemoteDescription(remoteOfferDescription);
   // creating our answer SDP and adding it to the server and peer connection
   const answerDescription = await peerConnection.createAnswer();
-  peerConnection.setLocalDescription(answerDescription);
   await pb.collection("calls").update(callID, { answer: answerDescription });
+  await peerConnection.setLocalDescription(answerDescription);
 
   // listen to created offer ice candidates and add it to Peerconnection obj
   pb.collection("offer_candidates").subscribe("*", async function (e) {
