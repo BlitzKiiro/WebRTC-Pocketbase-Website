@@ -513,8 +513,16 @@ video {
   --tw-backdrop-sepia:  ;
 }
 
-.col-span-1 {
-  grid-column: span 1 / span 1;
+.absolute {
+  position: absolute;
+}
+
+.relative {
+  position: relative;
+}
+
+.bottom-3 {
+  bottom: 0.75rem;
 }
 
 .col-span-2 {
@@ -533,20 +541,44 @@ video {
   display: grid;
 }
 
-.h-\[400px\] {
-  height: 400px;
+.hidden {
+  display: none;
 }
 
-.h-\[390px\] {
-  height: 390px;
+.h-10 {
+  height: 2.5rem;
+}
+
+.h-6 {
+  height: 1.5rem;
+}
+
+.h-4 {
+  height: 1rem;
 }
 
 .w-full {
   width: 100%;
 }
 
+.w-10 {
+  width: 2.5rem;
+}
+
+.w-6 {
+  width: 1.5rem;
+}
+
 .\!w-64 {
   width: 16rem !important;
+}
+
+.w-4 {
+  width: 1rem;
+}
+
+.cursor-pointer {
+  cursor: pointer;
 }
 
 .grid-cols-2 {
@@ -574,18 +606,47 @@ video {
        column-gap: 2rem;
 }
 
+.gap-y-3 {
+  row-gap: 0.75rem;
+}
+
+.gap-x-2 {
+  -moz-column-gap: 0.5rem;
+       column-gap: 0.5rem;
+}
+
 .gap-x-40 {
   -moz-column-gap: 10rem;
        column-gap: 10rem;
 }
 
-.gap-y-3 {
-  row-gap: 0.75rem;
+.rounded-full {
+  border-radius: 9999px;
+}
+
+.border-2 {
+  border-width: 2px;
+}
+
+.border-white\/75 {
+  border-color: rgb(255 255 255 / 0.75);
 }
 
 .bg-black {
   --tw-bg-opacity: 1;
   background-color: rgb(0 0 0 / var(--tw-bg-opacity));
+}
+
+.bg-black\/80 {
+  background-color: rgb(0 0 0 / 0.8);
+}
+
+.fill-white {
+  fill: #fff;
+}
+
+.fill-red-600 {
+  fill: #dc2626;
 }
 
 .px-4 {
@@ -605,6 +666,10 @@ video {
 .text-xl {
   font-size: 1.25rem;
   line-height: 1.75rem;
+}
+
+.filter {
+  filter: var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow);
 }
 
 :root {
@@ -722,16 +787,24 @@ video {
   }
 }
 
+video::-webkit-media-controls {
+  display: none !important;
+}
+
 @media (min-width: 768px) {
   .md\:col-span-1 {
     grid-column: span 1 / span 1;
   }
 
-  .md\:h-\[390px\] {
-    height: 390px;
+  .md\:flex {
+    display: flex;
   }
 
   .md\:h-\[400px\] {
     height: 400px;
+  }
+
+  .md\:h-\[390px\] {
+    height: 390px;
   }
 }

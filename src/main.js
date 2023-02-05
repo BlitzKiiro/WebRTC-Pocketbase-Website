@@ -4,10 +4,14 @@ import PocketBase from "pocketbase";
 //DOM query selectors
 let video1 = document.querySelector("#user-1");
 let video2 = document.querySelector("#user-2");
-let createBtn = document.querySelector("#create-btn");
-let joinBtn = document.querySelector("#join-btn");
 let createInput = document.querySelector("#create-input");
 let joinInput = document.querySelector("#join-input");
+let createBtn = document.querySelector("#create-btn");
+let joinBtn = document.querySelector("#join-btn");
+let shareBtn = document.querySelector("#share-screen");
+let fullScreenBtn = document.querySelector("#full-screen");
+let muteBtn = document.querySelector("#mute-mic");
+let unmMuteBtn = document.querySelector("#unmute-mic");
 
 //pocketbase configration
 const pb = new PocketBase("https://appetizing-potato.pockethost.io");
@@ -26,30 +30,29 @@ let localStream = null; //local media stream
 let remoteStream = null; //incoming media stream
 let peerConnection = new RTCPeerConnection(config); //RTC peer connection object
 
-//init function
-async function init() {
-  //setting up local & remote media sources
-  localStream = await navigator.mediaDevices.getUserMedia({
-    video: true,
-    audio: true,
+//setting up local & remote media sources
+localStream = await navigator.mediaDevices.getUserMedia({
+  video: true,
+  audio: true,
+});
+remoteStream = new MediaStream();
+
+//adding localStream to the Peer Connection Obj
+let camVideoTrack = localStream.getVideoTracks()[0];
+let camAudioTrack = localStream.getAudioTracks()[0];
+let videoSender = peerConnection.addTrack(camVideoTrack, localStream);
+let audioSender = peerConnection.addTrack(camAudioTrack, localStream);
+
+//getting incoming media stream tracks from peer connection and adding it to remote stream
+peerConnection.ontrack = (event) => {
+  event.streams[0].getTracks().forEach((track) => {
+    remoteStream.addTrack(track);
   });
-  remoteStream = new MediaStream();
+};
 
-  //adding localStream to the Peer Connection Obj
-  localStream.getTracks().forEach((track) => {
-    peerConnection.addTrack(track, localStream);
-  });
+video1.srcObject = new MediaStream(localStream.getVideoTracks());
+video2.srcObject = remoteStream;
 
-  //getting incoming media stream tracks from peer connection and adding it to remote stream
-  peerConnection.ontrack = (event) => {
-    event.streams[0].getTracks().forEach((track) => {
-      remoteStream.addTrack(track);
-    });
-  };
-
-  video1.srcObject = new MediaStream(localStream.getVideoTracks());
-  video2.srcObject = remoteStream;
-}
 //creating call function
 async function createOffer() {
   //creating pocketbase call document and setting id
@@ -148,14 +151,60 @@ async function answerOffer() {
   });
 }
 
-//init reading from media sources
-await init();
+async function ShareScreen() {
+  //getting screen share media
+  let screenStream = await navigator.mediaDevices.getDisplayMedia({});
+  let screenVideoTrack = screenStream.getVideoTracks()[0];
+
+  // replacing video tracks in the peer connection
+  videoSender.replaceTrack(screenVideoTrack);
+  video1.srcObject = new MediaStream(screenStream.getVideoTracks());
+
+  // toggling share button off
+  shareBtn.style.display = "none";
+  // listening to screenShare end
+  screenVideoTrack.onended = () => {
+    videoSender.replaceTrack(camVideoTrack);
+    video1.srcObject = new MediaStream(localStream.getVideoTracks());
+    //  toggling share button on
+    shareBtn.style.display = "flex";
+  };
+}
+
+const videoFullScreen = () => {
+  let requestMethod =
+    video1.requestFullScreen ||
+    video1.webkitRequestFullScreen ||
+    video1.mozRequestFullScreen ||
+    video1.msRequestFullScreen;
+
+  if (requestMethod) {
+    // Native full screen.
+    requestMethod.call(video2);
+  }
+};
+
+const mute = () => {
+  muteBtn.style.display = "none";
+  unmMuteBtn.style.display = "flex";
+  camAudioTrack.enabled = true;
+};
+
+const unmute = () => {
+  muteBtn.style.display = "flex";
+  unmMuteBtn.style.display = "none";
+  camAudioTrack.enabled = false;
+};
 
 //DOM Event listeners
-createBtn.addEventListener("click", (e) => {
-  createOffer();
-});
+createBtn.addEventListener("click", createOffer);
 
-joinBtn.addEventListener("click", (e) => {
-  answerOffer();
-});
+joinBtn.addEventListener("click", answerOffer);
+
+shareBtn.addEventListener("click", ShareScreen);
+
+fullScreenBtn.addEventListener("click", videoFullScreen);
+
+muteBtn.addEventListener("click", mute);
+
+unmMuteBtn.addEventListener("click", unmute);
