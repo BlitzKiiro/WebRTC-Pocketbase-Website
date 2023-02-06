@@ -187,13 +187,13 @@ const videoFullScreen = () => {
 const mute = () => {
   muteBtn.style.display = "none";
   unmMuteBtn.style.display = "flex";
-  camAudioTrack.enabled = true;
+  camAudioTrack.enabled = false;
 };
 
 const unmute = () => {
   muteBtn.style.display = "flex";
   unmMuteBtn.style.display = "none";
-  camAudioTrack.enabled = false;
+  camAudioTrack.enabled = true;
 };
 
 //DOM Event listeners
